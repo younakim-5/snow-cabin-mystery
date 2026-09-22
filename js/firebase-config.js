@@ -18,12 +18,12 @@
    ========================================================= */
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDwagpKuJO-ctSq6ctqaH110BZyA8V7lpI",
+  authDomain: "winter-244b6.firebaseapp.com",
+  projectId: "winter-244b6",
+  storageBucket: "winter-244b6.firebasestorage.app",
+  messagingSenderId: "439683444581",
+  appId: "1:439683444581:web:51d22feab19cd69fd77b8c"
 };
 
 const IS_LOCAL_MODE = firebaseConfig.apiKey === "YOUR_API_KEY";
