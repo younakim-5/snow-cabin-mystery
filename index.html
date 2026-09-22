@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한낮의 별에도 봄은 오는가</title>
+
+
+<link rel="stylesheet" href="css/theme.css?v=27">
+<link rel="stylesheet" href="css/layout.css?v=27">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- 상단 고정 바: 페이즈 표시 / 남은 시간 / 리셋 -->
+  <header id="top-bar">
+    <div class="frame-corner tl"></div>
+    <div class="frame-corner tr"></div>
+    <div id="phase-status">
+      <div id="phase-indicator">1페이즈</div>
+      <div id="phase-note" class="hidden"></div>
+      <div id="timer-display" class="hidden"><span id="timer-prefix"></span><span id="timer-value">--:--</span><span id="timer-suffix"></span></div>
+    </div>
+    <div id="local-mode-badge" class="hidden" title="Firebase 설정 전이라 같은 브라우저의 탭끼리만 동기화됩니다">로컬 테스트 모드</div>
+    <div id="top-actions"><button id="my-scenario-btn" class="ghost-btn hidden" title="내 개인 시나리오 다시 보기">내 시나리오</button><button id="reset-btn" class="ghost-btn" title="게임 초기화">리셋</button></div>
+  </header>
+
+  <!-- 메인 무대: 스테이지마다 내용이 바뀌는 영역 -->
+  <main id="stage-root">
+
+    <div id="scenario-review-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-panel scenario-review-panel">
+        <h3 id="scenario-review-title">내 시나리오</h3>
+        <nav id="scenario-review-phase-tabs" class="tab-row"></nav>
+        <nav id="scenario-review-section-tabs" class="tab-row secondary"></nav>
+        <div id="scenario-review-body" class="scenario-text scenario-body-spaced"></div>
+        <div class="modal-actions"><button id="scenario-review-close" class="primary-btn">돌아가기</button></div>
+      </div>
+    </div>
+
+    <!-- ===================== 룰 설명 (기본 / 페이즈별 공용) ===================== -->
+    <section id="stage-rules" class="stage panel panel-wide hidden">
+      <h2 class="stage-title" id="rules-title">게임 규칙</h2>
+      <div id="rules-text" class="scenario-text rules-text"></div>
+      <div class="ready-row">
+        <button id="rules-ready-btn" class="primary-btn">준비완료</button>
+        <div id="rules-ready-status" class="ready-status"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 0. 오프닝 ===================== -->
+    <section id="stage-opening" class="stage panel hidden">
+      <h1 class="stage-title">한낮의 별에도 봄은 오는가</h1>
+      <div id="opening-text" class="scenario-text"></div>
+      <div class="ready-row">
+        <button id="opening-ready-btn" class="primary-btn">준비완료</button>
+        <div id="opening-ready-status" class="ready-status"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 1. 캐릭터 선택 ===================== -->
+    <section id="stage-character-select" class="stage panel hidden">
+      <h2 class="stage-title">역할을 선택하세요</h2>
+      <div id="character-grid" class="character-grid">
+        <!-- JS가 4개 캐릭터 카드를 채워넣음 -->
+      </div>
+      <div id="character-select-status" class="ready-status"></div>
+      <div class="gm-row"><button id="gm-observe-btn" class="choice-btn gm-observe-btn">GM으로 관전하기</button><div id="gm-observe-status" class="ready-status hidden">GM 관전 모드 — 플레이어 화면을 따라갑니다.</div></div>
+
+      <!-- 선택 확인 화면: 카드를 누르면 그리드 대신 이게 뜬다 -->
+      <div id="character-confirm" class="hidden">
+        <p id="character-confirm-text" class="scenario-text"></p>
+        <div class="choice-row">
+          <button id="character-confirm-yes-btn" class="choice-btn">예, 진행합니다</button>
+          <button id="character-confirm-back-btn" class="choice-btn">다시 선택</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== 2. 개인 시나리오 ===================== -->
+    <section id="stage-scenario" class="stage panel hidden">
+      <div class="scenario-header">
+        <h2 class="stage-title" id="scenario-char-name">-</h2>
+      </div>
+      <nav id="scenario-tabs" class="tab-row"></nav>
+      <div id="scenario-body" class="scenario-text"></div>
+      <div class="ready-row">
+        <button id="scenario-ready-btn" class="primary-btn">준비완료</button>
+        <div id="scenario-ready-status" class="ready-status"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 3. 단서 조사 (턴제) ===================== -->
+    <section id="stage-investigation" class="stage panel panel-wide hidden">
+      <h2 class="stage-title" id="investigation-title">1차 조사</h2>
+      <p id="investigation-turn-indicator" class="scenario-text" style="margin-bottom:20px;"></p>
+
+      <div id="investigation-board" class="clue-board"></div>
+
+      <div id="revealed-cards-section">
+        <h3 class="revealed-cards-title">전체 공개된 카드</h3>
+        <div id="revealed-cards-list" class="revealed-cards-list"></div>
+      </div>
+    </section>
+
+    <!-- ===================== 3-1. 밀담 (라운드 공용) ===================== -->
+    <section id="stage-talk" class="stage panel hidden">
+      <h2 class="stage-title" id="talk-title">밀담</h2>
+      <div id="talk-text" class="scenario-text"></div>
+    </section>
+
+    <!-- ===================== 3-2. 전체 토론 ===================== -->
+    <section id="stage-discussion" class="stage panel hidden">
+      <h2 class="stage-title">전체 토론</h2>
+      <div id="discussion-text" class="scenario-text"></div>
+    </section>
+
+    <!-- 단서 상세 팝업 (획득한 단서 내용 확인용) -->
+    <div id="clue-modal" class="modal hidden">
+      <div class="modal-panel">
+        <div class="frame-corner tl"></div>
+        <div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div>
+        <div class="frame-corner br"></div>
+        <h3 id="clue-modal-title">-</h3>
+        <p id="clue-modal-body">-</p>
+        <div class="modal-actions">
+          <button id="clue-reveal-btn" class="primary-btn hidden">전체공개</button>
+          <button id="clue-close-btn" class="ghost-btn">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 4. 검거 ===================== -->
+    <section id="stage-arrest" class="stage panel hidden">
+      <h2 class="stage-title" id="arrest-title">시나리오 1</h2>
+      <div id="arrest-prompt" class="scenario-text arrest-prompt-text"></div>
+      <div id="arrest-instruction" class="scenario-text arrest-prompt-text arrest-instruction"></div>
+      <p id="arrest-revote-notice" class="revealed-cards-empty hidden" style="text-align:center; margin-bottom:16px;"></p>
+
+      <div id="arrest-choices" class="choice-row"></div>
+      <div id="arrest-target-choices" class="choice-row hidden"></div>
+
+      <button id="arrest-submit-btn" class="primary-btn" disabled>제출하기</button>
+      <div id="arrest-submit-status" class="ready-status"></div>
+    </section>
+
+    <!-- ===================== 4-1. 검거 결과 공개 ===================== -->
+    <section id="stage-arrest-result" class="stage panel hidden">
+      <h2 class="stage-title">결과 공개</h2>
+      <div id="arrest-result-list" class="result-list"></div>
+      <button id="arrest-next-btn" class="primary-btn">다음으로</button>
+    </section>
+
+    <!-- ===================== 4-2. 시나리오 A (검거된 경우에만) ===================== -->
+    <section id="stage-scenario-a" class="stage panel hidden">
+      <div id="scenario-a-text" class="scenario-text"></div>
+      <button id="scenario-a-next-btn" class="primary-btn">다음으로 (시나리오 B)</button>
+    </section>
+
+    <!-- ===================== 4-3. 시나리오 B (1페이즈 공통) ===================== -->
+    <section id="stage-scenario-b" class="stage panel hidden">
+      <div id="scenario-b-text" class="scenario-text"></div>
+      <button id="scenario-b-next-btn" class="primary-btn">다음으로</button>
+    </section>
+
+    <!-- ===================== 4-4. 시나리오 C (2페이즈: 그 외 인물 검거) ===================== -->
+    <section id="stage-scenario-c" class="stage panel hidden">
+      <div id="scenario-c-text" class="scenario-text"></div>
+      <button id="scenario-c-next-btn" class="primary-btn">다음으로 (시나리오 E)</button>
+    </section>
+
+    <!-- ===================== 4-5. 시나리오 D (2페이즈: 산장주인 검거) ===================== -->
+    <section id="stage-scenario-d" class="stage panel hidden">
+      <div id="scenario-d-text" class="scenario-text"></div>
+      <button id="scenario-d-next-btn" class="primary-btn">다음으로 (시나리오 E)</button>
+    </section>
+
+    <!-- ===================== 4-6. 시나리오 E (C/D 공용 합류) ===================== -->
+    <section id="stage-scenario-e" class="stage panel hidden">
+      <div id="scenario-e-text" class="scenario-text"></div>
+      <button id="scenario-e-next-btn" class="primary-btn">다음으로</button>
+    </section>
+
+    <!-- ===================== 4-7. 시나리오 3 (3페이즈 결말, 투표 없음) ===================== -->
+    <section id="stage-scenario-3" class="stage panel hidden">
+      <div id="scenario-3-text" class="scenario-text"></div>
+      <button id="scenario-3-next-btn" class="primary-btn">다음으로 (엔딩)</button>
+    </section>
+
+    <!-- ===================== 5. 엔딩 ===================== -->
+    <section id="stage-ending" class="stage panel hidden">
+      <div id="ending-text" class="scenario-text"></div>
+    </section>
+
+  </main>
+
+</div>
+
+<!-- Firebase (compat SDK, 빌드 도구 없이 CDN으로 바로 사용) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script src="js/firebase-config.js?v=27"></script>
+<script src="js/backend.js?v=27"></script>
+<script src="js/game-data.js?v=27"></script>
+<script src="js/game-state.js?v=27"></script>
+<script src="js/ui-render.js?v=27"></script>
+<script src="js/main.js?v=27"></script>
+</body>
+</html>
