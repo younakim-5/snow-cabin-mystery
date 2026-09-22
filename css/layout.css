@@ -1,0 +1,81 @@
+/* =========================================================
+   레이아웃: 배치 및 반응형
+   ========================================================= */
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#stage-root {
+  flex: 1;
+  padding: 0 16px 60px;
+}
+
+.stage {
+  animation: fade-in 0.4s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.scenario-header {
+  text-align: center;
+}
+
+/* 모바일 대응 */
+@media (max-width: 720px) {
+  .panel {
+    margin: 20px 0;
+    padding: 28px 20px;
+  }
+
+  .character-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  #top-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  #reset-btn {
+    position: static;
+    order: 3;
+  }
+
+  .clue-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .clue-list {
+    grid-template-columns: 1fr;
+  }
+  .character-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* 키보드 포커스 접근성 */
+button:focus-visible,
+.clue-card:focus-visible,
+.character-card:focus-visible {
+  outline: 2px solid var(--brass-bright);
+  outline-offset: 2px;
+}
+
+/* 모션 최소화 환경 배려 */
+@media (prefers-reduced-motion: reduce) {
+  .stage {
+    animation: none;
+  }
+  .primary-btn:hover:not(:disabled) {
+    transform: none;
+  }
+}
