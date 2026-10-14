@@ -365,7 +365,7 @@ function renderClueListModal() {
   const ids = isMine
     ? Object.keys(state.clueClaims || {}).filter((id) => state.clueClaims[id] === myCharId)
     : revealedIds.slice();
-  const visibleIds = ids.filter((id) => getCluePhase(id) === phase);
+  const visibleIds = orderClueIds(state, ids).filter((id) => getCluePhase(id) === phase);
 
   const body = el("clue-list-body");
   body.innerHTML = "";
@@ -570,7 +570,10 @@ function renderQuadrants(board, state, activeCharId) {
     }
     quadrant.appendChild(nameEl);
 
-    const myClaims = Object.entries(state.clueClaims).filter(([, charId]) => charId === character.id);
+    const myClaims = orderClueIds(
+      state,
+      Object.keys(state.clueClaims || {}).filter((id) => state.clueClaims[id] === character.id)
+    ).map((id) => [id, character.id]);
     const maxPhase = Math.max(1, Math.min(3, state.currentPhase || 1));
     if (maxPhase >= 2) {
       if (!quadrantPhaseView[character.id] || quadrantPhaseView[character.id] > maxPhase) quadrantPhaseView[character.id] = maxPhase;
@@ -621,7 +624,7 @@ function renderRevealedCards(state) {
   const listEl = el("revealed-cards-list");
   listEl.innerHTML = "";
 
-  const revealedIds = state.revealedClueIds || [];
+  const revealedIds = orderClueIds(state, state.revealedClueIds || []);
   if (revealedIds.length === 0) {
     const empty = document.createElement("p");
     empty.className = "revealed-cards-empty";
@@ -930,9 +933,9 @@ function renderTalkTransfer(state) {
   title.textContent = "단서 양도";
   host.appendChild(title);
 
-  const myClues = Object.keys(state.clueClaims || {}).filter(
+  const myClues = orderClueIds(state, Object.keys(state.clueClaims || {}).filter(
     (id) => state.clueClaims[id] === myCharId && !isStartingClue(id)
-  );
+  ));
   if (selectedTransferClueId && !myClues.includes(selectedTransferClueId)) selectedTransferClueId = null;
 
   if (myClues.length === 0) {

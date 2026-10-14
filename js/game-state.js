@@ -57,6 +57,7 @@ function getInitialGameState() {
 
     // 조사에서 획득한 단서와 그 소유자. (1페이즈 최초 소지 단서는 없음)
     clueClaims: { ...PHASE1_STARTING_CLAIMS }, // { clueId: characterId }
+    clueClaimOrder: Object.keys(PHASE1_STARTING_CLAIMS), // 획득/양도 순서. 새 단서는 뒤에 추가한다.
     revealedClueIds: [], // 소유 여부와 별개로, 모두에게 "전체공개"된 단서 id 목록
     revealUsed: {},      // { "1": { characterId: clueId } } — 페이즈마다 1인 1회 <전체 공개> 사용 기록 (강제 공개는 기록하지 않음)
     investigationTurnIndex: 0, // 현재 조사 라운드 안에서 몇 번째 순서인지
@@ -74,6 +75,37 @@ function getInitialGameState() {
     arrestRevoteCount: {}, // { "phase2": 재투표 횟수 } — 동률로 재투표가 발생했을 때만 증가
     arrestEligibleTargets: {} // { "phase2": [targetId, ...] | null } — 동률 재투표 시 후보를 그 사람들로만 좁힘
   };
+}
+
+// 상태 객체의 키 순서는 저장소/직렬화 과정에서 보장되지 않으므로,
+// 기존 세이브에 순서 배열이 없을 때만 정적 단서 배치 순서로 복구한다.
+function getClueClaimOrder(state) {
+  const claims = state.clueClaims || {};
+  const order = [];
+  const seen = new Set();
+  const add = (id) => {
+    if (claims[id] && !seen.has(id)) { order.push(id); seen.add(id); }
+  };
+
+  (Array.isArray(state.clueClaimOrder) ? state.clueClaimOrder : []).forEach(add);
+  Object.keys(CLUES).map(Number).sort((a, b) => a - b).forEach((phase) => {
+    (CLUES[phase].rooms || []).forEach((room) => room.items.forEach((item) => add(item.id)));
+  });
+  Object.keys(claims).sort().forEach(add);
+  return order;
+}
+
+function appendClueClaimOrder(state, clueId) {
+  return [...getClueClaimOrder(state).filter((id) => id !== clueId), clueId];
+}
+
+function orderClueIds(state, ids) {
+  const positions = new Map(getClueClaimOrder(state).map((id, index) => [id, index]));
+  return [...ids].sort((a, b) => {
+    const ai = positions.has(a) ? positions.get(a) : Number.MAX_SAFE_INTEGER;
+    const bi = positions.has(b) ? positions.get(b) : Number.MAX_SAFE_INTEGER;
+    return ai - bi || String(a).localeCompare(String(b));
+  });
 }
 
 // ---------------------------------------------------------
@@ -313,6 +345,7 @@ async function claimClueTurn(clueId) {
     const next = {
       ...state,
       clueClaims: { ...state.clueClaims, [clueId]: charId },
+      clueClaimOrder: appendClueClaimOrder(state, clueId),
       revealedClueIds: applyForcedReveal(state, clueId),
       investigationTurnIndex: nextTurnIndex
     };
@@ -362,6 +395,7 @@ async function claimFreeClue(clueId) {
     return {
       ...state,
       clueClaims: { ...state.clueClaims, [clueId]: charId },
+      clueClaimOrder: appendClueClaimOrder(state, clueId),
       revealedClueIds: applyForcedReveal(state, clueId),
       freePickCounts
     };
@@ -408,7 +442,11 @@ async function transferClue(clueId, toCharId) {
     if (!toCharId || toCharId === charId || !Object.prototype.hasOwnProperty.call(state.characters, toCharId)) {
       throw new Error("받을 사람을 다시 선택해주세요.");
     }
-    return { ...state, clueClaims: { ...state.clueClaims, [clueId]: toCharId } };
+    return {
+      ...state,
+      clueClaims: { ...state.clueClaims, [clueId]: toCharId },
+      clueClaimOrder: appendClueClaimOrder(state, clueId)
+    };
   });
 }
 
@@ -431,6 +469,8 @@ async function advancePhase(nextPhase, nextStage, durationSec) {
     // 페이즈가 바뀌면 그 페이즈에서 이미 소유한 것으로 간주되는 최초 소지 단서를 함께 등록한다.
     const seedByPhase = { 2: PHASE2_STARTING_CLAIMS };
     const seed = seedByPhase[nextPhase] || {};
+    const clueClaimOrder = getClueClaimOrder(state);
+    Object.keys(seed).forEach((id) => { if (!clueClaimOrder.includes(id)) clueClaimOrder.push(id); });
 
     return {
       ...state,
@@ -438,7 +478,8 @@ async function advancePhase(nextPhase, nextStage, durationSec) {
       currentStage: nextStage,
       stageStartedAt: serverNow(),
       stageDurationSec: durationSec || 0,
-      clueClaims: { ...state.clueClaims, ...seed }
+      clueClaims: { ...state.clueClaims, ...seed },
+      clueClaimOrder
     };
   });
 }
